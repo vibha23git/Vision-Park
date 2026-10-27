@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard - ParkVision</title><link rel="stylesheet" href="style.css"></head><body>
+<header class="nav" id="nav"></header><main><h2 id="hi">Dashboard</h2><p class="err" id="err"></p>
+<div class="grid" id="stats"></div><div class="card" style="margin-top:1rem"><h3>My reservations</h3><div id="res">Loading…</div>
+<p><a class="btn" href="parking.html">Find parking</a></p></div></main>
+<script src="script.js"></script><script>
+(async()=>{const u=await requireAuth();if(!u)return;hi.textContent='Welcome, '+u.name;
+async function load(){try{
+const s=await api('/api/parking/summary');
+const c=[['Total slots',s.total],['Available',s.available],['Occupied',s.occupied],['Reserved now',s.reserved],['Active reservations',s.activeReservations],['EV free',s.evAvailable+' / '+s.evTotal],['My bookings',s.mine]];
+stats.innerHTML=c.map(([l,v])=>'<div class="card stat"><b>'+esc(v)+'</b>'+esc(l)+'</div>').join('');
+const r=(await api('/api/reservations/my')).reservations;
+res.innerHTML=r.length?'<table><tr><th>Ref</th><th>Slot</th><th>Vehicle</th><th>Start</th><th>End</th><th>Status</th><th></th></tr>'+r.map(x=>'<tr><td>'+esc(x.booking_reference)+'</td><td>'+esc(x.slot_code)+'</td><td>'+esc(x.registration_number)+'</td><td>'+fmt(x.start_time)+'</td><td>'+fmt(x.end_time)+'</td><td>'+esc(x.reservation_status)+'</td><td>'+(x.reservation_status==='confirmed'?'<button class="btn alt" data-id="'+x.id+'">Cancel</button>':'')+'</td></tr>').join('')+'</table>':'No reservations yet. Add a vehicle, then book a slot.';
+}catch(e){err.textContent=e.message}}
+res.onclick=async e=>{const id=e.target.dataset.id;if(id){try{await api('/api/reservations/'+id+'/cancel','PATCH');load()}catch(x){err.textContent=x.message}}};
+load();live(load);})();</script><script src="/socket.io/socket.io.js"></script></body></html>
